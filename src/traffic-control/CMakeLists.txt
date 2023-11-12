@@ -5,6 +5,7 @@ build_lib(
     helper/traffic-control-helper.cc
     model/cobalt-queue-disc.cc
     model/codel-queue-disc.cc
+    model/dt-queue-disc.cc
     model/fifo-queue-disc.cc
     model/fq-cobalt-queue-disc.cc
     model/fq-codel-queue-disc.cc
@@ -16,6 +17,7 @@ build_lib(
     model/prio-queue-disc.cc
     model/queue-disc.cc
     model/red-queue-disc.cc
+    model/sb-fifo-queue-disc.cc
     model/tbf-queue-disc.cc
     model/traffic-control-layer.cc
   HEADER_FILES
@@ -23,6 +25,7 @@ build_lib(
     helper/traffic-control-helper.h
     model/cobalt-queue-disc.h
     model/codel-queue-disc.h
+    model/dt-queue-disc.h
     model/fifo-queue-disc.h
     model/fq-cobalt-queue-disc.h
     model/fq-codel-queue-disc.h
@@ -34,6 +37,7 @@ build_lib(
     model/prio-queue-disc.h
     model/queue-disc.h
     model/red-queue-disc.h
+    model/sb-fifo-queue-disc.h
     model/tbf-queue-disc.h
     model/traffic-control-layer.h
   LIBRARIES_TO_LINK

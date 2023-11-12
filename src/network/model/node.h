@@ -26,6 +26,9 @@
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 
+/* //zq add switch
+#include "ns3/switch.h" */
+
 #include <vector>
 
 namespace ns3
@@ -212,6 +215,11 @@ class Node : public Object
      * \returns true if checksums are enabled, false otherwise.
      */
     static bool ChecksumEnabled();
+/*     //zqadd
+    Ptr<Switch> m_switch; */
+    void SetNodeType(uint32_t type);
+    uint32_t GetNodeType();
+
 
   protected:
     /**
@@ -297,6 +305,9 @@ class Node : public Object
     typedef std::vector<Node::ProtocolHandlerEntry> ProtocolHandlerList;
     /// Typedef for NetDevice addition listeners container
     typedef std::vector<DeviceAdditionListener> DeviceAdditionListenerList;
+
+    //zq add
+    uint32_t m_node_type=0;
 
     uint32_t m_id;                                        //!< Node id for this node
     uint32_t m_sid;                                       //!< System id for this node

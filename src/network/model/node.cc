@@ -391,4 +391,21 @@ Node::NotifyDeviceAdded(Ptr<NetDevice> device)
     }
 }
 
+/* //zq add
+void 
+Node::SetNodeType(uint32_t type)
+{
+	m_node_type = type;
+	if (type==1)
+	{
+		m_switch = CreateObject<Switch>();
+	}
+} */
+uint32_t 
+Node::GetNodeType()
+{
+	return m_node_type;
+}
+
+
 } // namespace ns3

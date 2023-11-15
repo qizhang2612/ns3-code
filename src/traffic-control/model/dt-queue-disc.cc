@@ -159,30 +159,35 @@ DtFifoQueueDisc::CheckConfig(void)
     if (GetNQueueDiscClasses() > 0)//QueueDisc NUM
     {
         NS_LOG_ERROR("DtFifoQueueDisc cannot have classes");
+        std::cout << "DtFifoQueueDisc cannot have classes" << std::endl;
         return false;
     }
 
     if (GetNPacketFilters() != 0)//packet filter NUM
     {
         NS_LOG_ERROR("DtFifoQueueDisc needs no packet filter");
+        std::cout << "DtFifoQueueDisc needs no packet filter" << std::endl;
         return false;
     }
 
     if (m_sharedBufferSize == 0)
     {
         NS_LOG_ERROR("DtFifoQueueDisc cannot have zero shared buffer size");
+        std::cout << "DtFifoQueueDisc cannot have zero shared buffer size" << std::endl;
         return false;
     }
 
-    if (m_usedBufferPtr == nullptr)
+/*     if (m_usedBufferPtr == nullptr)
     {
         NS_LOG_ERROR("DtFifoQueueDisc needs a pointer to used buffer size");
+        std::cout << "DtFifoQueueDisc needs a pointer to used buffer size" << std::endl;
         return false;
-    }
+    } */
 
     if (GetMaxSize().GetValue() == 0)
     {
         NS_LOG_ERROR("The capacity of queue(s) cannot be zero");
+        std::cout << "The capacity of queue(s) cannot be zero" << std::endl;
         return false;
     }
 
@@ -197,22 +202,22 @@ DtFifoQueueDisc::CheckConfig(void)
 
     if (GetNInternalQueues() != 1)
     {
-        NS_LOG_ERROR("Number of queue in DtFifoQueueDisc "
-                     "mismatches 1");
+        NS_LOG_ERROR("Number of queue in DtFifoQueueDisc mismatches 1");
+        std::cout << "Number of queue in DtFifoQueueDisc mismatches 1" << std::endl;
         return false;
     }
 
     if (GetInternalQueue(0)->GetMaxSize().GetUnit() != QueueSizeUnit::PACKETS)//packets or bytes
     {
-        NS_LOG_ERROR("DtFifoQueueDisc needs internal queue "
-                     "operating in packet mode");
+        NS_LOG_ERROR("DtFifoQueueDisc needs internal queue operating in packet mode");
+        std::cout << "DtFifoQueueDisc needs internal queue operating in packet mode" << std::endl;
         return false;
     }
 
     if (GetInternalQueue(0)->GetMaxSize() != GetMaxSize())
     {
-        NS_LOG_ERROR("The capacity of internal queue mismatches "
-                     "the queue disc capacity");
+        NS_LOG_ERROR("The capacity of internal queue mismatches the queue disc capacity");
+        std::cout << "The capacity of internal queue mismatches the queue disc capacity" << std::endl;
         return false;
     }
 

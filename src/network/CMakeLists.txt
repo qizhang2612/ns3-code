@@ -23,6 +23,7 @@ set(source_files
     model/packet.cc
     model/socket-factory.cc
     model/socket.cc
+    model/switch.cc
     model/tag-buffer.cc
     model/tag.cc
     model/trailer.cc
@@ -96,6 +97,7 @@ set(header_files
     model/packet.h
     model/socket-factory.h
     model/socket.h
+    model/switch.h
     model/tag-buffer.h
     model/tag.h
     model/trailer.h

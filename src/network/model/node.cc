@@ -391,7 +391,7 @@ Node::NotifyDeviceAdded(Ptr<NetDevice> device)
     }
 }
 
-/* //zq add
+//zq add
 void 
 Node::SetNodeType(uint32_t type)
 {
@@ -400,7 +400,7 @@ Node::SetNodeType(uint32_t type)
 	{
 		m_switch = CreateObject<Switch>();
 	}
-} */
+}
 uint32_t 
 Node::GetNodeType()
 {

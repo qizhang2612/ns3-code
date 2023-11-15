@@ -287,6 +287,13 @@ PointToPointNetDevice::TransmitComplete()
     {
         NS_LOG_LOGIC("No pending packets in device queue after tx complete");
         return;
+    }else{
+        //zq change
+        if(m_node->GetNodeType()==1){
+            std::cout<<"flag2"<<std::endl;
+            m_node->m_switch->DeleteUsed(p->GetSize());
+            std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
+        }//zq change end
     }
 
     //
@@ -332,6 +339,8 @@ PointToPointNetDevice::SetReceiveErrorModel(Ptr<ErrorModel> em)
 void
 PointToPointNetDevice::Receive(Ptr<Packet> packet)
 {
+    //zq change
+    std::cout<<"this is receive function."<<"in node "<<m_node->GetId()<<" and the device is "<<this->GetIfIndex()<<std::endl;
     NS_LOG_FUNCTION(this << packet);
     uint16_t protocol = 0;
 
@@ -512,6 +521,8 @@ PointToPointNetDevice::IsBridge() const
 bool
 PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber)
 {
+    //zq change
+    std::cout<<"this is send function."<<"in node "<<m_node->GetId()<<" and the device is "<<this->GetIfIndex()<<std::endl;
     NS_LOG_FUNCTION(this << packet << dest << protocolNumber);
     NS_LOG_LOGIC("p=" << packet << ", dest=" << &dest);
     NS_LOG_LOGIC("UID is " << packet->GetUid());
@@ -534,6 +545,15 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
 
     m_macTxTrace(packet);
 
+    //zq change
+    if(m_node->GetNodeType()==1){
+        if(m_queue->GetNBytes()+packet->GetSize() > uint32_t(m_node->m_switch->GetThreshold())){
+            std::cout<<"drop because threshold"<<std::endl;
+            return false;
+        }
+    }
+    //zq change end
+
     //
     // We should enqueue and dequeue the packet to hit the tracing hooks.
     //
@@ -542,9 +562,30 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
         //
         // If the channel is ready for transition we send the packet right now
         //
+        //zq change
+        if(m_node->GetNodeType()==1){
+            m_node->m_switch->AddUsed(packet->GetSize());
+            std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<" and the packet size is "<<packet->GetSize()<<std::endl;
+        }
+        //zq change end
+
         if (m_txMachineState == READY)
         {
+            //zq change
+            if(m_node->GetNodeType()==1){
+                std::cout<<"flag1"<<std::endl;
+            }
+            //zq change end
+
             packet = m_queue->Dequeue();
+
+            //zq change
+            if(m_node->GetNodeType()==1){
+                m_node->m_switch->DeleteUsed(packet->GetSize());
+                std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
+            }
+            //zq change end
+
             m_snifferTrace(packet);
             m_promiscSnifferTrace(packet);
             bool ret = TransmitStart(packet);
@@ -554,6 +595,8 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
     }
 
     // Enqueue may fail (overflow)
+    //zq add
+    std::cout<<"In node "<<m_node->GetId()<<" Enqueue may fail (overflow)"<<std::endl;
 
     m_macTxDropTrace(packet);
     return false;

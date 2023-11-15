@@ -26,8 +26,8 @@
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 
-/* //zq add switch
-#include "ns3/switch.h" */
+//zq add switch
+#include "ns3/switch.h"
 
 #include <vector>
 
@@ -215,8 +215,8 @@ class Node : public Object
      * \returns true if checksums are enabled, false otherwise.
      */
     static bool ChecksumEnabled();
-/*     //zqadd
-    Ptr<Switch> m_switch; */
+    //zqadd
+    Ptr<Switch> m_switch;
     void SetNodeType(uint32_t type);
     uint32_t GetNodeType();
 

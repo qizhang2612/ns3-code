@@ -547,8 +547,10 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
 
     //zq change
     if(m_node->GetNodeType()==1){
-        if(m_queue->GetNBytes()+packet->GetSize() > uint32_t(m_node->m_switch->GetThreshold())){
+        if(m_queue->GetNBytes()+packet->GetSize() > uint32_t(m_node->m_switch->GetThreshold()) 
+          || uint32_t(m_node->m_switch->GetAvailBufferSize()) < packet->GetSize()){
             std::cout<<"drop because threshold"<<std::endl;
+            m_node->m_switch->AddPacketDropNum();
             return false;
         }
     }
@@ -565,6 +567,8 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
         //zq change
         if(m_node->GetNodeType()==1){
             m_node->m_switch->AddUsed(packet->GetSize());
+            m_node->m_switch->AddPacketEnqueueNum();
+            std::cout<<"----- PacketEnqueueNum = " <<m_node->m_switch->GetPacketEnqueueNum()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<" and the packet size is "<<packet->GetSize()<<std::endl;
         }
         //zq change end

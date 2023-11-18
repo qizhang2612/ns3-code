@@ -292,6 +292,10 @@ PointToPointNetDevice::TransmitComplete()
         if(m_node->GetNodeType()==1){
             std::cout<<"flag2"<<std::endl;
             m_node->m_switch->DeleteUsed(p->GetSize());
+            m_node->m_switch->AddDeQueueLength(p->GetSize());
+            m_node->m_switch->AddPacketDequeueNum();
+            std::cout<<"----- PacketDequeueNum = " <<m_node->m_switch->GetPacketDequeueNum()<<std::endl;
+            std::cout<<"----- DequeueLength = " <<m_node->m_switch->GetDeQueueLength()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
         }//zq change end
     }
@@ -341,6 +345,10 @@ PointToPointNetDevice::Receive(Ptr<Packet> packet)
 {
     //zq change
     std::cout<<"this is receive function."<<"in node "<<m_node->GetId()<<" and the device is "<<this->GetIfIndex()<<std::endl;
+    if(m_node->GetNodeType()==1){
+        m_node->m_switch->AddPacketArriveSize(packet->GetSize());
+    }
+    //zq change end
     NS_LOG_FUNCTION(this << packet);
     uint16_t protocol = 0;
 
@@ -568,8 +576,10 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
         if(m_node->GetNodeType()==1){
             m_node->m_switch->AddUsed(packet->GetSize());
             m_node->m_switch->AddPacketEnqueueNum();
+            m_node->m_switch->AddEnQueueLength(packet->GetSize());
             std::cout<<"----- PacketEnqueueNum = " <<m_node->m_switch->GetPacketEnqueueNum()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<" and the packet size is "<<packet->GetSize()<<std::endl;
+            std::cout<<"----- EnQueueLength = " <<m_node->m_switch->GetEnQueueLength()<<std::endl;
         }
         //zq change end
 
@@ -586,6 +596,10 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
             //zq change
             if(m_node->GetNodeType()==1){
                 m_node->m_switch->DeleteUsed(packet->GetSize());
+                m_node->m_switch->AddDeQueueLength(packet->GetSize());
+                m_node->m_switch->AddPacketDequeueNum();
+                std::cout<<"----- PacketDequeueNum = " <<m_node->m_switch->GetPacketDequeueNum()<<std::endl;
+                std::cout<<"----- DequeueLength = " <<m_node->m_switch->GetDeQueueLength()<<std::endl;
                 std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
             }
             //zq change end

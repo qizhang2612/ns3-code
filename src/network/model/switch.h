@@ -8,12 +8,33 @@
 #include "ns3/nstime.h"
 #include "ns3/core-module.h"
 
+/*EDT port state*/
+# define CONTROL 10
+# define NONCONTROL 11
+
+/*TDT port state*/
+# define TDTNORMAL 20
+# define ABSORPTION 21
+# define EVACUATION 22
+
+/*AASDT port state*/
+# define AASDTNORMAL 30
+# define INCAST 31
+# define CONGESTION 32
+# define COEXIST_I 33
+# define COEXIST_C 34
+
+/*AASDT α Adjust the cycle : ms*/
+# define ADJUSTCYCLE 100000
+# define ADJUSTPARAMETER 1
+
 namespace ns3 {
     class Switch : public Object{
         public:
             static TypeId GetTypeId (void);
             Switch();
             virtual ~Switch();
+            //get function
             int GetThreshold();
             int GetPacketDropNum();
             int GetSharedBufferSize();
@@ -25,6 +46,7 @@ namespace ns3 {
             int GetEnQueueLength();
             int GetDeQueueLength();
             int64_t GetNowTime(); //ms
+            //set function
             void SetdtAlphaExp(int alphaExp);
             void Setstrategy(int strategy);
             void SetUsedBufferPtr(Ptr<UintegerValue> usedBufferPtr);
@@ -33,6 +55,7 @@ namespace ns3 {
             void SetEDTPortNumPtr(Ptr<UintegerValue> EDTCPortNumPtr,Ptr<UintegerValue> EDTNCPortNumPtr);
             void SetTDTPortNumPtr(Ptr<UintegerValue> TDTNPortNumPtr,Ptr<UintegerValue> TDTAPortNumPtr,Ptr<UintegerValue> TDTEPortNumPtr);
             void SetAASDTPortNumPtr(Ptr<UintegerValue> AASDTNPortNumPtr,Ptr<UintegerValue> AASDTIPortNumPtr,Ptr<UintegerValue> AASDTCPortNumPtr,Ptr<UintegerValue> AASDTCIPortNumPtr,Ptr<UintegerValue> AASDTCCPortNumPtr);
+            //Calculate function
             void AddEnQueueLength(int queuelength);
             void AddDeQueueLength(int queuelength);
             void AddPacketDropNum();
@@ -43,32 +66,43 @@ namespace ns3 {
             void DeleteUsed(int size);
             void Calculate();
             void StatusJudgment();
-            void AASDTReset(int alphaExp);
+            void TimeoutJudgment();
+            void AASDTReset();
 
-            int m_EDTstate = 10;                  //10:控制；11:非控制;
-            int m_TDTstate = 20;                  //20:正常；21:吸收;22:疏散
-            int m_AASDTstate = 30;                //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
+            int m_EDTstate = NONCONTROL;                  //10:控制；11:非控制;
+            int m_TDTstate = TDTNORMAL;                  //20:正常；21:吸收;22:疏散
+            int m_AASDTstate = INCAST;                //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
             
 
         private:
             int m_strategy = 0;                 //0:DT;1:EDT;2:TDT;3:AASDT
-        	double m_threshold;
             int m_dtAlphaExp;                   //alpha = 2^(dtAlphaExp) 
             int m_sharedBufferSize;             //bytes
             int m_packetDropNum;                //packet Drop Num
             int m_packetEnqueueNum;             //packet DoEnqueue Num
             int m_packetDequeueNum;             //packet DoEnqueue Num
-            int m_enQueueLength;                //enqueuelength
-            int m_deQueueLength;                //dequeuelength
+            int m_enqueueLength;                //enqueue length
+            int m_dequeueLength;                //dequeue length 
             int m_packetArriveSize;             //packet arrive size
+            int m_packetNum;                    //每几个算一个速率
 
-            bool m_isTrafficArrive = false;     //流量是否到达
-            bool m_isTrafficLeave = false;      //流量是否离开
-
-            int m_AASDTITime = 0;               //突发次数
-            int m_AASDTCTime = 0;               //拥塞次数   
-
+            //时间变量：ms
             int64_t m_stateTransitionTimer;     //记录超时时间
+            int64_t m_startTime;                //开始时间
+            int64_t m_enqueueClock;             //enqueue clock
+            int64_t m_dequeueClock;             //dequeue clock
+            int64_t m_enqueueInterval;          //enqueue interval
+            int64_t m_dequeueInterval;          //dequeue interval
+
+
+            bool m_isTrafficExist = false;      //流量是否存在
+            bool m_isQueueShort = false;        //队列是否很短
+
+            double m_threshold;                 //阈值
+            double m_enqueueRate;               // enqueue rate B/MS
+            double m_lastEnqueueRate = 0.0;     // enqueue rate B/MS
+            double m_dequeueRate;               // dequeue rate B/MS
+
 
             //EVERY STATE PORT NUM POINTER
             Ptr<UintegerValue> m_PortNumPtr;
@@ -85,6 +119,10 @@ namespace ns3 {
             Ptr<UintegerValue> m_AASDTCPortNumPtr;
             Ptr<UintegerValue> m_AASDTCIPortNumPtr;
             Ptr<UintegerValue> m_AASDTCCPortNumPtr;
+
+
+            Ptr<UintegerValue> m_AASDTITimePtr; //突发次数
+            Ptr<UintegerValue> m_AASDTCTimePtr; //拥塞次数 
 
             Ptr<UintegerValue> m_usedBufferPtr; // point to used buffer size in a node
             

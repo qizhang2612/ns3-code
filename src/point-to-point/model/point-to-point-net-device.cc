@@ -576,10 +576,6 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
         //zq change
         if(m_node->GetNodeType()==1){
             //m_node->m_switch->Calculate();
-/*             for(auto p : m_queue){
-                m_node->m_switch->AddQueueLength(p->GetSize());
-            }
-            std::cout<<"----- QueueLength = "<< m_node->m_switch->GetQueueLength()<<std::endl; */
             m_node->m_switch->AddUsed(packet->GetSize());
             m_node->m_switch->AddPacketEnqueueNum();
             m_node->m_switch->AddEnQueueLength(packet->GetSize());
@@ -596,7 +592,6 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
             //zq change
             if(m_node->GetNodeType()==1){
                 std::cout<<"flag1"<<std::endl;
-                //m_node->m_switch->Calculate();
                 m_node->m_switch->DeleteUsed(packet->GetSize());
                 m_node->m_switch->AddPacketDequeueNum();
                 m_node->m_switch->AddDeQueueLength(packet->GetSize());

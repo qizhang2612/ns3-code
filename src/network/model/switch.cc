@@ -19,7 +19,7 @@
 # define QUEUELENGTHLIMIT 0
 # define ENQUEUERATELIMIT 1000
 # define DEQUEUERATELIMIT 40
-# define PACKETNUM 1
+# define PACKETNUM 3
 
 namespace ns3 {
 
@@ -45,6 +45,8 @@ Switch::Switch(){
     m_packetDequeueNum = 0;
     m_enqueueLength = 0;
     m_dequeueLength = 0;
+    m_lastEnqueueLength = 0;
+    m_lastDequeueLength = 0;
     m_packetArriveSize = 0;
     m_enqueueClock = 0;
     m_dequeueClock = 0;
@@ -61,9 +63,15 @@ Switch::~Switch(){
 
 int Switch::GetThreshold(){
     StatusJudgment();
+    if(m_stateChangePtr->Get() > 0){
+        m_isDropPacket = false;
+    }
     Calculate();
     //std::cout<<m_threshold<<std::endl;
-    return int(m_threshold);
+    if(m_threshold > m_sharedBufferSize){
+        return m_sharedBufferSize;
+    }
+    return int64_t(m_threshold);
 }
 
 int Switch::GetPacketDropNum(){
@@ -115,15 +123,25 @@ void Switch::Calculate(){
         if(m_EDTstate == CONTROL){
             m_threshold = (m_dtAlphaExp >= 0) ? (availBuffer << m_dtAlphaExp) : (availBuffer >> (-m_dtAlphaExp));
         }else{
-            m_threshold = m_sharedBufferSize / n;
+            if(m_stateChangePtr->Get() > 0){
+                //std::cout<<"zqzqzqzqzqzq"<<std::endl;
+                m_threshold = m_sharedBufferSize / n;
+                m_stateChangePtr->Set(0);
+            }
         }
     }else if(m_strategy == TDT){
         int n = m_PortNumPtr->Get();
         int n_a = m_TDTAPortNumPtr->Get();
         if(m_TDTstate == ABSORPTION){
-            m_threshold = m_sharedBufferSize / n_a;
+            if(m_stateChangePtr->Get() > 0){
+                m_threshold = m_sharedBufferSize / n_a;
+                m_stateChangePtr->Set(0);
+            }
         }else if(m_TDTstate == EVACUATION){
-            m_threshold = m_sharedBufferSize / n;
+            if(m_stateChangePtr->Get() > 0){
+                m_threshold = m_sharedBufferSize / n;
+                m_stateChangePtr->Set(0);
+            }
         }else{
             m_threshold = (m_dtAlphaExp >= 0) ? (availBuffer << m_dtAlphaExp) : (availBuffer >> (-m_dtAlphaExp));
         }
@@ -136,46 +154,76 @@ void Switch::Calculate(){
         int n_cc = m_AASDTCCPortNumPtr->Get();
         if(n == 1){
             if(m_AASDTstate == AASDTNORMAL){
-                SetdtAlphaExp(m_dtAlphaExp);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha);
+                    m_stateChangePtr->Set(0);
+                }
             }else if(m_AASDTstate == INCAST){
                 //std::cout<<"11111111111111111111"<<std::endl;
-                if(m_packetDropNum <= AASDTPACKETDROPNUMLIMIT){
-                    SetdtAlphaExp(m_dtAlphaExp + 1);
-                    //std::cout<<m_threshold<<std::endl;
-                }else{
-                    SetdtAlphaExp(m_dtAlphaExp + 1 + n);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + 1);
+                    m_stateChangePtr->Set(0);
+                }
+                if(m_isDropPacket){
+                    SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
                 }
             }else if(m_AASDTstate == CONGESTION){
-                SetdtAlphaExp(m_dtAlphaExp + 1);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + 1);
+                    m_stateChangePtr->Set(0);
+                }
             }
         }else if(n_n == n){//all normal
-            SetdtAlphaExp(m_dtAlphaExp);
+            if(m_stateChangePtr->Get() > 0){
+                SetdtAlphaExp(m_dtInitialAlpha);
+                m_stateChangePtr->Set(0);
+            }
         }else if(n_n + n_i == n){
             //only have incast port
             if(m_AASDTstate == INCAST){
-                if(m_packetDropNum <= AASDTPACKETDROPNUMLIMIT){
-                    SetdtAlphaExp(m_dtAlphaExp + 1 + n - n_i);
-                }else{
-                    SetdtAlphaExp(m_dtAlphaExp + 1 + n);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + 1 + n - n_i);
+                    m_stateChangePtr->Set(0);
+                }
+                if(m_isDropPacket){
+                    SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
                 }
             }else{
-                SetdtAlphaExp(m_dtAlphaExp);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha);
+                    m_stateChangePtr->Set(0);
+                }
             }
         }else if(n_n + n_c == n){
             //only have CONGESTION port
             if(m_AASDTstate == CONGESTION){
-                SetdtAlphaExp(m_dtAlphaExp + n_c);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + n_c);
+                    m_stateChangePtr->Set(0);
+                }
             }else{
-                SetdtAlphaExp(m_dtAlphaExp);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha);
+                    m_stateChangePtr->Set(0);
+                }
             }
         }else{
             //COEXIST
             if(m_AASDTstate == COEXIST_I){
-                SetdtAlphaExp(m_dtAlphaExp + n + 1 + n_cc - n_ci);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + n + 1 + n_cc - n_ci);
+                    m_stateChangePtr->Set(0);
+                }
             }else if(m_AASDTstate == COEXIST_C){
-                SetdtAlphaExp(m_dtAlphaExp + n_cc - n_ci);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha + n_cc - n_ci);
+                    m_stateChangePtr->Set(0);
+                }
             }else{
-                SetdtAlphaExp(m_dtAlphaExp);
+                if(m_stateChangePtr->Get() > 0){
+                    SetdtAlphaExp(m_dtInitialAlpha);
+                    m_stateChangePtr->Set(0);
+                }
             }
         }
         m_threshold = (m_dtAlphaExp >= 0) ? (availBuffer << m_dtAlphaExp) : (availBuffer >> (-m_dtAlphaExp));
@@ -196,6 +244,11 @@ void Switch::SetdtAlphaExp(int alphaExp){;
     m_dtAlphaExp = alphaExp;
 }
 
+void Switch::SetdtInitialAlphaExp(int alphaExp){
+    m_dtInitialAlpha = alphaExp;
+    SetdtAlphaExp(alphaExp);
+}
+
 void Switch::SetUsedBufferPtr(Ptr<UintegerValue> usedBufferPtr)
 {
     m_usedBufferPtr = usedBufferPtr;
@@ -206,12 +259,16 @@ void Switch::SetPortNumPtr(Ptr<UintegerValue> PortNumPtr)
     m_PortNumPtr = PortNumPtr;
 }
 
+void Switch::SetStateChangePtr(Ptr<UintegerValue> stateChangePtr)
+{
+    m_stateChangePtr = stateChangePtr;
+}
+
 void Switch::SetEDTPortNumPtr(Ptr<UintegerValue> EDTCPortNumPtr,Ptr<UintegerValue> EDTNCPortNumPtr)
 {
     m_EDTCPortNumPtr = EDTCPortNumPtr;
     m_EDTNCPortNumPtr = EDTNCPortNumPtr;
 }
-
 
 void Switch::SetTDTPortNumPtr(Ptr<UintegerValue> TDTNPortNumPtr,Ptr<UintegerValue> TDTAPortNumPtr,Ptr<UintegerValue> TDTEPortNumPtr)
 {
@@ -232,9 +289,11 @@ void Switch::SetAASDTPortNumPtr(Ptr<UintegerValue> AASDTNPortNumPtr,Ptr<Uinteger
 void Switch::AddPacketDropNum(){
     ++m_packetDropNum;
     if(m_packetDropNum > PACKETDROPNUMLIMIT){
+        m_isDropPacket = true;
         if(m_strategy == EDT){
             if(m_EDTstate == NONCONTROL){
                 m_EDTstate = CONTROL;
+                m_stateChangePtr->Set(1);
                 int n_nc = m_EDTNCPortNumPtr->Get();
                 int n_c = m_EDTCPortNumPtr->Get();
                 m_EDTNCPortNumPtr->Set(n_nc - 1);
@@ -243,12 +302,14 @@ void Switch::AddPacketDropNum(){
         }else if(m_strategy == TDT){
             if(m_TDTstate == TDTNORMAL){
                 m_TDTstate = EVACUATION;
+                m_stateChangePtr->Set(1);
                 int n_n = m_TDTNPortNumPtr->Get();
                 int n_e = m_TDTEPortNumPtr->Get();
                 m_TDTNPortNumPtr->Set(n_n - 1);
                 m_TDTEPortNumPtr->Set(n_e + 1);
             }else if(m_TDTstate == ABSORPTION){
                 m_TDTstate = TDTNORMAL;
+                m_stateChangePtr->Set(1);
                 int n_n = m_TDTNPortNumPtr->Get();
                 int n_a = m_TDTAPortNumPtr->Get();
                 m_TDTNPortNumPtr->Set(n_n + 1);
@@ -286,6 +347,7 @@ void Switch::TimeoutJudgment(){
         int n_n = m_EDTNCPortNumPtr->Get();
         if(m_time_now - m_stateTransitionTimer > TIMELIMIT){
             m_EDTstate = CONTROL;
+            m_stateChangePtr->Set(1);
             //std::cout<<"22222222222";
             m_EDTCPortNumPtr->Set(n_c + 1);
             m_EDTNCPortNumPtr->Set(n_n - 1);
@@ -294,6 +356,7 @@ void Switch::TimeoutJudgment(){
         int n_i = m_AASDTIPortNumPtr->Get();
         int n_c = m_AASDTCPortNumPtr->Get();
         if(m_time_now - m_stateTransitionTimer > AASDTTIMELIMIT){
+            m_stateChangePtr->Set(1);
             m_AASDTstate = CONGESTION;
             m_AASDTCPortNumPtr->Set(n_c - 1);
             m_AASDTIPortNumPtr->Set(n_i - 1);
@@ -315,8 +378,16 @@ void Switch::AddEnQueueLength(int queuelength){
             m_enqueueInterval = nowClock - m_enqueueClock;
             //std::cout<<m_enqueueInterval<<std::endl;
             m_enqueueClock = nowClock;
-            m_enqueueRate = m_enqueueLength / m_enqueueInterval;
-            std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl;
+            if(m_enqueueInterval != 0){
+                m_enqueueRate = (m_enqueueLength - m_lastEnqueueLength) / m_enqueueInterval;
+                m_lastEnqueueLength = m_enqueueLength;
+                std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl;
+            }else{
+                std::cout<<"-------m_enqueueInterval is "<<m_enqueueInterval<<std::endl;
+            }
+
+            /* m_enqueueRate = m_enqueueLength / m_enqueueInterval;
+            std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl; */
         }
     }
 
@@ -344,6 +415,7 @@ void Switch::AddEnQueueLength(int queuelength){
             int n_c = m_EDTCPortNumPtr->Get();
             int n_n = m_EDTNCPortNumPtr->Get();
             if(m_EDTstate == CONTROL){
+                m_stateChangePtr->Set(1);
                 m_EDTstate = NONCONTROL;
                 m_EDTCPortNumPtr->Set(n_c - 1);
                 m_EDTNCPortNumPtr->Set(n_n + 1);
@@ -352,6 +424,7 @@ void Switch::AddEnQueueLength(int queuelength){
             int n_n = m_TDTNPortNumPtr->Get();
             int n_a = m_TDTAPortNumPtr->Get();
             if(m_TDTstate == TDTNORMAL){
+                m_stateChangePtr->Set(1);
                 m_TDTstate = ABSORPTION;
                 m_TDTAPortNumPtr->Set(n_a + 1);
                 m_TDTNPortNumPtr->Set(n_n - 1);  
@@ -361,6 +434,7 @@ void Switch::AddEnQueueLength(int queuelength){
             int n_i = m_AASDTIPortNumPtr->Get();
             //int n_c = m_AASDTCPortNumPtr->Get();
             if(m_AASDTstate == AASDTNORMAL){
+                m_stateChangePtr->Set(1);
                 m_AASDTstate = INCAST;
                 int AASDTITime = m_AASDTITimePtr->Get();
                 m_AASDTNPortNumPtr->Set(n_n - 1);
@@ -384,8 +458,15 @@ void Switch::AddDeQueueLength(int queuelength){
             m_dequeueInterval = nowClock - m_dequeueClock;
             //std::cout<<m_dequeueInterval<<std::endl;
             m_dequeueClock = nowClock;
-            m_dequeueRate = m_dequeueLength / m_dequeueInterval;
-            std::cout<<"-------dequeue rate is "<<m_dequeueRate<<std::endl;
+            if(m_dequeueInterval != 0){
+                m_dequeueRate = (m_dequeueLength - m_lastDequeueLength) / m_dequeueInterval;
+                m_lastDequeueLength = m_dequeueLength;
+                std::cout<<"-------dequeue rate is "<<m_dequeueRate<<std::endl;
+            }else{
+                std::cout<<"-------m_dequeueInterval is "<<m_dequeueInterval<<std::endl;
+            }
+            /* m_dequeueRate = m_dequeueLength / m_dequeueInterval;
+            std::cout<<"-------dequeue rate is "<<m_dequeueRate<<std::endl; */
         }
 
     }
@@ -408,6 +489,7 @@ void Switch::AddDeQueueLength(int queuelength){
             int n_c = m_EDTCPortNumPtr->Get();
             int n_n = m_EDTNCPortNumPtr->Get();
             if(m_EDTstate == NONCONTROL){
+                m_stateChangePtr->Set(1);
                 m_EDTstate = CONTROL;
                 m_EDTCPortNumPtr->Set(n_c + 1);
                 m_EDTNCPortNumPtr->Set(n_n - 1);
@@ -416,24 +498,27 @@ void Switch::AddDeQueueLength(int queuelength){
             int n_n = m_TDTNPortNumPtr->Get();
             int n_a = m_TDTAPortNumPtr->Get();
             if(m_TDTstate == ABSORPTION){
+                m_stateChangePtr->Set(1);
                 m_TDTstate = TDTNORMAL;
                 m_TDTAPortNumPtr->Set(n_a - 1);
                 m_TDTNPortNumPtr->Set(n_n + 1);  
             }
-        }else if(m_strategy == AASDT){
+        }/* else if(m_strategy == AASDT){
             int n_n = m_AASDTNPortNumPtr->Get();
             int n_i = m_AASDTIPortNumPtr->Get();
             int n_c = m_AASDTCPortNumPtr->Get();
             if(m_AASDTstate == INCAST){
+                m_stateChangePtr->Set(1);
                 m_AASDTstate = AASDTNORMAL;
                 m_AASDTNPortNumPtr->Set(n_n + 1);
                 m_AASDTIPortNumPtr->Set(n_i - 1);
             }else if(m_AASDTstate == CONGESTION){
+                m_stateChangePtr->Set(1);
                 m_AASDTstate = AASDTNORMAL;
                 m_AASDTCPortNumPtr->Set(n_c - 1);
                 m_AASDTNPortNumPtr->Set(n_n + 1); 
             }
-        }
+        } */
     }
 }
 
@@ -452,11 +537,13 @@ void Switch::StatusJudgment(){
         int n_ci = m_AASDTCIPortNumPtr->Get();
         int n_cc = m_AASDTCCPortNumPtr->Get();
         if(m_AASDTstate == INCAST && n_c > 0){
+            m_stateChangePtr->Set(1);
             m_AASDTstate = COEXIST_I;
             m_AASDTIPortNumPtr->Set(n_i - 1);
             m_AASDTCIPortNumPtr->Set(n_ci + 1);
         }
         if(m_AASDTstate == CONGESTION && n_i > 0){
+            m_stateChangePtr->Set(1);
             m_AASDTstate = COEXIST_C;
             m_AASDTCPortNumPtr->Set(n_c - 1);
             m_AASDTCCPortNumPtr->Set(n_cc + 1);
@@ -470,11 +557,12 @@ void Switch::AASDTReset(){
     int AASDTITime = m_AASDTITimePtr->Get();
     int AASDTCTime = m_AASDTCTimePtr->Get();
     int alphaExp = ADJUSTPARAMETER * AASDTCTime - AASDTITime;
-    SetdtAlphaExp(alphaExp);
+    SetdtInitialAlphaExp(alphaExp);
     m_AASDTITimePtr->Set(0);
     m_AASDTCTimePtr->Set(0);
     m_packetEnqueueNum = 0;
     m_startTime = GetNowTime();
+    m_stateChangePtr->Set(1);
     //port adjust
     int n = m_PortNumPtr->Get();
     m_AASDTNPortNumPtr->Set(n);

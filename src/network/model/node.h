@@ -219,6 +219,8 @@ class Node : public Object
     Ptr<Switch> m_switch;
     void SetNodeType(uint32_t type);
     uint32_t GetNodeType();
+    void SetSwitchPort(int port);
+    int GetSwitchPort();
 
 
   protected:
@@ -307,7 +309,8 @@ class Node : public Object
     typedef std::vector<DeviceAdditionListener> DeviceAdditionListenerList;
 
     //zq add
-    uint32_t m_node_type=0;
+    uint32_t m_node_type = 0;
+    int m_switchPort = 0;
 
     uint32_t m_id;                                        //!< Node id for this node
     uint32_t m_sid;                                       //!< System id for this node

@@ -17,7 +17,7 @@
 # define TIMELIMIT 100
 # define AASDTTIMELIMIT 200
 # define QUEUELENGTHLIMIT 0
-# define ENQUEUERATELIMIT 1000
+# define ENQUEUERATELIMIT 160
 # define DEQUEUERATELIMIT 40
 # define PACKETNUM 3
 
@@ -76,6 +76,9 @@ int Switch::GetThreshold(){
 
 int Switch::GetPacketDropNum(){
     return m_packetDropNum;
+}
+int Switch::GetStrategy(){
+    return m_strategy;
 }
 
 int Switch::GetSharedBufferSize(){
@@ -154,26 +157,31 @@ void Switch::Calculate(){
         int n_cc = m_AASDTCCPortNumPtr->Get();
         if(n == 1){
             if(m_AASDTstate == AASDTNORMAL){
+                //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha);
                     m_stateChangePtr->Set(0);
                 }
             }else if(m_AASDTstate == INCAST){
                 //std::cout<<"11111111111111111111"<<std::endl;
+                //std::cout<<"-------this is INCAST state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + 1);
                     m_stateChangePtr->Set(0);
                 }
                 if(m_isDropPacket){
+                    //std::cout<<"-------Drop Packet unlimited-------"<<std::endl;
                     SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
                 }
             }else if(m_AASDTstate == CONGESTION){
+                //std::cout<<"-------this is CONGESTION state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + 1);
                     m_stateChangePtr->Set(0);
                 }
             }
         }else if(n_n == n){//all normal
+            //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
             if(m_stateChangePtr->Get() > 0){
                 SetdtAlphaExp(m_dtInitialAlpha);
                 m_stateChangePtr->Set(0);
@@ -181,14 +189,17 @@ void Switch::Calculate(){
         }else if(n_n + n_i == n){
             //only have incast port
             if(m_AASDTstate == INCAST){
+                //std::cout<<"-------this is INCAST state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + 1 + n - n_i);
                     m_stateChangePtr->Set(0);
                 }
                 if(m_isDropPacket){
+                    //std::cout<<"-------Drop Packet unlimited-------"<<std::endl;
                     SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
                 }
             }else{
+                //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha);
                     m_stateChangePtr->Set(0);
@@ -197,11 +208,13 @@ void Switch::Calculate(){
         }else if(n_n + n_c == n){
             //only have CONGESTION port
             if(m_AASDTstate == CONGESTION){
+                //std::cout<<"-------this is CONGESTION state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + n_c);
                     m_stateChangePtr->Set(0);
                 }
             }else{
+                //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha);
                     m_stateChangePtr->Set(0);
@@ -210,16 +223,19 @@ void Switch::Calculate(){
         }else{
             //COEXIST
             if(m_AASDTstate == COEXIST_I){
+                //std::cout<<"-------this is COEXIST_I state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + n + 1 + n_cc - n_ci);
                     m_stateChangePtr->Set(0);
                 }
             }else if(m_AASDTstate == COEXIST_C){
+                //std::cout<<"-------this is COEXIST_C state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha + n_cc - n_ci);
                     m_stateChangePtr->Set(0);
                 }
             }else{
+                //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
                     SetdtAlphaExp(m_dtInitialAlpha);
                     m_stateChangePtr->Set(0);
@@ -262,6 +278,11 @@ void Switch::SetPortNumPtr(Ptr<UintegerValue> PortNumPtr)
 void Switch::SetStateChangePtr(Ptr<UintegerValue> stateChangePtr)
 {
     m_stateChangePtr = stateChangePtr;
+}
+
+void Switch::SetAASDTICNumPtr(Ptr<UintegerValue> AASDTITimePtr,Ptr<UintegerValue> AASDTCTimePtr){
+    m_AASDTITimePtr = AASDTITimePtr;
+    m_AASDTCTimePtr = AASDTCTimePtr;
 }
 
 void Switch::SetEDTPortNumPtr(Ptr<UintegerValue> EDTCPortNumPtr,Ptr<UintegerValue> EDTNCPortNumPtr)
@@ -314,6 +335,7 @@ void Switch::AddPacketDropNum(){
                 int n_a = m_TDTAPortNumPtr->Get();
                 m_TDTNPortNumPtr->Set(n_n + 1);
                 m_TDTEPortNumPtr->Set(n_a - 1);
+                m_packetDropNum = 0;
             }
         }
     }
@@ -370,9 +392,10 @@ void Switch::TimeoutJudgment(){
 void Switch::AddEnQueueLength(int queuelength){
     m_enqueueLength += queuelength;
     //每几个包算一下入队速率
-    if(m_packetEnqueueNum % PACKETNUM == 0){
+    if(m_packetEnqueueNum % PACKETNUM == 1){
         if(m_enqueueClock == 0){
             m_enqueueClock = GetNowTime();
+            m_lastEnqueueLength = m_enqueueLength;
         }else{
             int64_t nowClock = GetNowTime();
             m_enqueueInterval = nowClock - m_enqueueClock;
@@ -385,7 +408,6 @@ void Switch::AddEnQueueLength(int queuelength){
             }else{
                 std::cout<<"-------m_enqueueInterval is "<<m_enqueueInterval<<std::endl;
             }
-
             /* m_enqueueRate = m_enqueueLength / m_enqueueInterval;
             std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl; */
         }
@@ -403,8 +425,13 @@ void Switch::AddEnQueueLength(int queuelength){
     }
     
     //入队增速超过阈值，状态调整
-    if(m_enqueueRate - m_lastEnqueueRate > ENQUEUERATELIMIT){
+    //std::cout<<m_enqueueRate - m_lastEnqueueRate;
+    //if(m_enqueueRate - m_lastEnqueueRate > ENQUEUERATELIMIT && m_lastEnqueueRate != 0){
+    if(m_enqueueRate > ENQUEUERATELIMIT && m_lastEnqueueRate != 0){
         //记录最开始流量到达的时间
+        std::cout<<"--------- incast ----------"<<std::endl;
+        //std::cout<<m_enqueueRate<<std::endl;
+        //std::cout<<m_lastEnqueueRate<<std::endl;
         if(!m_isTrafficExist){
             m_isTrafficExist = true;
             //记录此时时间
@@ -450,7 +477,7 @@ void Switch::AddEnQueueLength(int queuelength){
 void Switch::AddDeQueueLength(int queuelength){
     m_dequeueLength += queuelength;
     //每几个包算一下出队速率
-    if(m_packetDequeueNum % PACKETNUM == 0){
+    if(m_packetDequeueNum % PACKETNUM == 1){
         if(m_dequeueClock == 0){
             m_dequeueClock = GetNowTime();
         }else{
@@ -479,7 +506,7 @@ void Switch::AddDeQueueLength(int queuelength){
 
     //出队速率小于阈值且队列长度小于阈值
     if((m_dequeueRate !=0 && m_dequeueRate <= DEQUEUERATELIMIT) && m_isQueueShort){
-        std::cout<<"incast traffic leave "<<std::endl;
+        std::cout<<"----- incast traffic leave -----"<<std::endl;
         //state change
         if(m_isTrafficExist){
             m_isTrafficExist = false;

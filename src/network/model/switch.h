@@ -37,6 +37,7 @@ namespace ns3 {
             //get function
             int GetThreshold();
             int GetPacketDropNum();
+            int GetStrategy();
             int GetSharedBufferSize();
             int GetAvailBufferSize();
             int GetPacketEnqueueNum();
@@ -54,6 +55,7 @@ namespace ns3 {
             void SetSharedBufferSize(int sharedBufferSize);
             void SetPortNumPtr(Ptr<UintegerValue> PortNumPtr);
             void SetStateChangePtr(Ptr<UintegerValue> stateChangePtr);
+            void SetAASDTICNumPtr(Ptr<UintegerValue> AASDTITimePtr,Ptr<UintegerValue> AASDTCTimePtr);
             void SetEDTPortNumPtr(Ptr<UintegerValue> EDTCPortNumPtr,Ptr<UintegerValue> EDTNCPortNumPtr);
             void SetTDTPortNumPtr(Ptr<UintegerValue> TDTNPortNumPtr,Ptr<UintegerValue> TDTAPortNumPtr,Ptr<UintegerValue> TDTEPortNumPtr);
             void SetAASDTPortNumPtr(Ptr<UintegerValue> AASDTNPortNumPtr,Ptr<UintegerValue> AASDTIPortNumPtr,Ptr<UintegerValue> AASDTCPortNumPtr,Ptr<UintegerValue> AASDTCIPortNumPtr,Ptr<UintegerValue> AASDTCCPortNumPtr);
@@ -71,9 +73,9 @@ namespace ns3 {
             void TimeoutJudgment();
             void AASDTReset();
 
-            int m_EDTstate = NONCONTROL;                  //10:控制；11:非控制;
+            int m_EDTstate = CONTROL;                  //10:控制；11:非控制;
             int m_TDTstate = TDTNORMAL;                   //20:正常；21:吸收;22:疏散
-            int m_AASDTstate = INCAST;//AASDTNORMAL;      //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
+            int m_AASDTstate = AASDTNORMAL;//INCAST;      //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
 
         private:
             int m_strategy = 0;                 //0:DT;1:EDT;2:TDT;3:AASDT

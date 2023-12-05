@@ -590,8 +590,8 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
                 std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<" and the state is = "<< m_node->m_switch->m_AASDTstate<<std::endl;
             }
             //std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<std::endl;
-            std::cout<<"----- the queue length is "<<m_node->m_switch->GetQueuePacketNum()<<std::endl;
-             std::cout<<"----- the queue packet num is "<<m_node->m_switch->GetQueueLength()<<std::endl;
+            std::cout<<"----- the queue length is "<<m_node->m_switch->GetQueueLength()<<std::endl;
+             std::cout<<"----- the queue packet num is "<<m_node->m_switch->GetQueuePacketNum()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<" and the packet size is "<<packet->GetSize()<<std::endl;
             //std::cout<<"----- PacketEnqueueNum = " <<m_node->m_switch->GetPacketEnqueueNum()<<std::endl;
             //std::cout<<"----- EnQueueLength = " <<m_node->m_switch->GetEnQueueLength()<<std::endl;

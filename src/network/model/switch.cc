@@ -353,6 +353,7 @@ void Switch::AddPacketDropNum(){
             m_TDTNPortNumPtr->Set(n_n + 1);
             m_TDTEPortNumPtr->Set(n_a - 1);
             m_packetDropNum = 0;
+            m_isTrafficExist = false;
         }
     }
 }
@@ -415,6 +416,7 @@ void Switch::TimeoutJudgment(){
             m_TDTNPortNumPtr->Set(n_n + 1);
             m_TDTEPortNumPtr->Set(n_a - 1);
             m_packetDequeueNum = 0;
+            m_isTrafficExist = false;
         }
     }else if(m_strategy == AASDT && m_AASDTstate == INCAST){
         int n_i = m_AASDTIPortNumPtr->Get();

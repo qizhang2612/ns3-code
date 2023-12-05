@@ -2,7 +2,7 @@
 #include "switch.h"
 #include "ns3/timer.h"
 #include "iostream"
- #include <ns3/simulator.h>
+#include <ns3/simulator.h>
 
 /*Buffer Management Algorithms*/
 # define DT 0
@@ -10,14 +10,10 @@
 # define TDT 2
 # define AASDT 3
 
-
 /*state transition limit*/
-# define PACKETDROPNUMLIMIT 9
-# define AASDTPACKETDROPNUMLIMIT 5
 # define TIMELIMIT 100
-# define AASDTTIMELIMIT 200
-# define QUEUELENGTHLIMIT 0
-# define ENQUEUERATELIMIT 160
+# define QUEUELENGTHLIMIT 100
+# define ENQUEUERATELIMIT 100
 # define DEQUEUERATELIMIT 40
 # define PACKETNUM 3
 
@@ -63,9 +59,9 @@ Switch::~Switch(){
 
 int Switch::GetThreshold(){
     StatusJudgment();
-    if(m_stateChangePtr->Get() > 0){
+    /* if(m_stateChangePtr->Get() > 0){
         m_isDropPacket = false;
-    }
+    } */
     Calculate();
     //std::cout<<m_threshold<<std::endl;
     if(m_threshold > m_sharedBufferSize){
@@ -77,8 +73,13 @@ int Switch::GetThreshold(){
 int Switch::GetPacketDropNum(){
     return m_packetDropNum;
 }
+
 int Switch::GetStrategy(){
     return m_strategy;
+}
+
+uint32_t Switch::GetPort(){
+    return m_port;
 }
 
 int Switch::GetSharedBufferSize(){
@@ -95,6 +96,14 @@ int Switch::GetPacketEnqueueNum(){
 
 int Switch::GetPacketDequeueNum(){
     return m_packetDequeueNum;
+}
+
+uint32_t Switch::GetQueueLength(){
+    return m_queueLength;
+}
+
+uint32_t Switch::GetQueuePacketNum(){
+    return m_queuePacketNum;
 }
 
 int Switch::GetEnQueueLength(){
@@ -128,6 +137,7 @@ void Switch::Calculate(){
         }else{
             if(m_stateChangePtr->Get() > 0){
                 //std::cout<<"zqzqzqzqzqzq"<<std::endl;
+                //std::cout<<n<<std::endl;
                 m_threshold = m_sharedBufferSize / n;
                 m_stateChangePtr->Set(0);
             }
@@ -172,6 +182,7 @@ void Switch::Calculate(){
                 if(m_isDropPacket){
                     //std::cout<<"-------Drop Packet unlimited-------"<<std::endl;
                     SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
+                    m_isDropPacket = false;
                 }
             }else if(m_AASDTstate == CONGESTION){
                 //std::cout<<"-------this is CONGESTION state-------"<<std::endl;
@@ -197,6 +208,7 @@ void Switch::Calculate(){
                 if(m_isDropPacket){
                     //std::cout<<"-------Drop Packet unlimited-------"<<std::endl;
                     SetdtAlphaExp(m_dtInitialAlpha + 1 + n);
+                    m_isDropPacket = false;
                 }
             }else{
                 //std::cout<<"-------this is AASDTNORMAL state-------"<<std::endl;
@@ -248,10 +260,13 @@ void Switch::Calculate(){
     }   
 }
 
-void Switch::Setstrategy(int strategy){
+void Switch::SetStrategy(int strategy){
     m_strategy = strategy;
 }
 
+void Switch::SetPort(uint32_t port){
+    m_port = port;
+}
 void Switch::SetSharedBufferSize(int sharedBufferSize){
     m_sharedBufferSize = sharedBufferSize;
 }
@@ -263,6 +278,14 @@ void Switch::SetdtAlphaExp(int alphaExp){;
 void Switch::SetdtInitialAlphaExp(int alphaExp){
     m_dtInitialAlpha = alphaExp;
     SetdtAlphaExp(alphaExp);
+}
+
+void Switch::SetQueueLength(uint32_t length){
+    m_queueLength = length;
+}
+
+void Switch::SetQueuePacketNum(uint32_t num){
+    m_queuePacketNum = num;
 }
 
 void Switch::SetUsedBufferPtr(Ptr<UintegerValue> usedBufferPtr)
@@ -309,48 +332,48 @@ void Switch::SetAASDTPortNumPtr(Ptr<UintegerValue> AASDTNPortNumPtr,Ptr<Uinteger
 
 void Switch::AddPacketDropNum(){
     ++m_packetDropNum;
-    if(m_packetDropNum > PACKETDROPNUMLIMIT){
+    m_C2 = 0;
+    if(m_strategy == AASDT && m_packetDropNum > AASDTPACKETDROPNUMLIMIT){
         m_isDropPacket = true;
-        if(m_strategy == EDT){
-            if(m_EDTstate == NONCONTROL){
-                m_EDTstate = CONTROL;
-                m_stateChangePtr->Set(1);
-                int n_nc = m_EDTNCPortNumPtr->Get();
-                int n_c = m_EDTCPortNumPtr->Get();
-                m_EDTNCPortNumPtr->Set(n_nc - 1);
-                m_EDTCPortNumPtr->Set(n_c + 1);
-            }
-        }else if(m_strategy == TDT){
-            if(m_TDTstate == TDTNORMAL){
-                m_TDTstate = EVACUATION;
-                m_stateChangePtr->Set(1);
-                int n_n = m_TDTNPortNumPtr->Get();
-                int n_e = m_TDTEPortNumPtr->Get();
-                m_TDTNPortNumPtr->Set(n_n - 1);
-                m_TDTEPortNumPtr->Set(n_e + 1);
-            }else if(m_TDTstate == ABSORPTION){
-                m_TDTstate = TDTNORMAL;
-                m_stateChangePtr->Set(1);
-                int n_n = m_TDTNPortNumPtr->Get();
-                int n_a = m_TDTAPortNumPtr->Get();
-                m_TDTNPortNumPtr->Set(n_n + 1);
-                m_TDTEPortNumPtr->Set(n_a - 1);
-                m_packetDropNum = 0;
-            }
+        m_packetDropNum = 0;
+    }
+    if(m_strategy == TDT && m_packetDropNum > TDTPACKETDROPNUMLIMIT){
+        if(m_TDTstate == TDTNORMAL){
+            m_TDTstate = EVACUATION;
+            m_stateChangePtr->Set(1);
+            int n_n = m_TDTNPortNumPtr->Get();
+            int n_e = m_TDTEPortNumPtr->Get();
+            m_TDTNPortNumPtr->Set(n_n - 1);
+            m_TDTEPortNumPtr->Set(n_e + 1);
+        }else if(m_TDTstate == ABSORPTION){
+            m_TDTstate = TDTNORMAL;
+            m_stateChangePtr->Set(1);
+            int n_n = m_TDTNPortNumPtr->Get();
+            int n_a = m_TDTAPortNumPtr->Get();
+            m_TDTNPortNumPtr->Set(n_n + 1);
+            m_TDTEPortNumPtr->Set(n_a - 1);
+            m_packetDropNum = 0;
         }
     }
 }
+
 
 void Switch::AddPacketArriveSize(int size){
     m_packetArriveSize += size;
     //start time
     if(m_startTime == 0){
         m_startTime = GetNowTime();
-        std::cout<<"-------start time is "<<m_startTime<<std::endl;
+        m_T1 = GetNowTime();
+        std::cout<<"-------start time in port "<<m_port<<" is "<<m_startTime<<std::endl;
     }
     int64_t nowTime = GetNowTime();
     if(nowTime - m_startTime > ADJUSTCYCLE){
         AASDTReset();
+    }
+    //EDT 计时器更新
+    if(m_strategy == EDT && (nowTime - m_T1 > EDT_T1 && m_C2 <= EDT_C2)){
+        m_T1 = GetNowTime();
+        m_C2 = 0;
     }
 }
 
@@ -360,6 +383,11 @@ void Switch::AddPacketEnqueueNum(){
 
 void Switch::AddPacketDequeueNum(){
     ++m_packetDequeueNum;
+    ++m_OC1;
+    if(m_OC1 >= TDTOC1){
+        m_OC1 = m_OC1 % TDTOC1;
+        m_isTDTIncast = false;
+    }
 }
 
 void Switch::TimeoutJudgment(){
@@ -367,12 +395,26 @@ void Switch::TimeoutJudgment(){
     if(m_strategy == EDT && m_EDTstate == NONCONTROL){
         int n_c = m_EDTCPortNumPtr->Get();
         int n_n = m_EDTNCPortNumPtr->Get();
-        if(m_time_now - m_stateTransitionTimer > TIMELIMIT){
+        if(m_time_now - m_T2 > EDT_T2){
             m_EDTstate = CONTROL;
             m_stateChangePtr->Set(1);
             //std::cout<<"22222222222";
             m_EDTCPortNumPtr->Set(n_c + 1);
             m_EDTNCPortNumPtr->Set(n_n - 1);
+            m_T1 = GetNowTime();
+            m_C2 = 0;
+            m_C1 = 0;
+            m_isTrafficExist = false;
+        }
+    }else if(m_strategy == TDT && m_TDTstate == ABSORPTION){
+        int n_n = m_TDTNPortNumPtr->Get();
+        int n_a = m_TDTAPortNumPtr->Get();
+        if(m_packetDequeueNum >= TDTOC2){
+            m_TDTstate = TDTNORMAL;
+            m_stateChangePtr->Set(1);
+            m_TDTNPortNumPtr->Set(n_n + 1);
+            m_TDTEPortNumPtr->Set(n_a - 1);
+            m_packetDequeueNum = 0;
         }
     }else if(m_strategy == AASDT && m_AASDTstate == INCAST){
         int n_i = m_AASDTIPortNumPtr->Get();
@@ -404,9 +446,9 @@ void Switch::AddEnQueueLength(int queuelength){
             if(m_enqueueInterval != 0){
                 m_enqueueRate = (m_enqueueLength - m_lastEnqueueLength) / m_enqueueInterval;
                 m_lastEnqueueLength = m_enqueueLength;
-                std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl;
+                std::cout<<"-------enqueue rate in port "<<m_port<<" is "<<m_enqueueRate<<std::endl;
             }else{
-                std::cout<<"-------m_enqueueInterval is "<<m_enqueueInterval<<std::endl;
+                std::cout<<"-------m_enqueueInterval in port "<<m_port<<" is "<<m_enqueueInterval<<std::endl;
             }
             /* m_enqueueRate = m_enqueueLength / m_enqueueInterval;
             std::cout<<"-------enqueue rate is "<<m_enqueueRate<<std::endl; */
@@ -420,8 +462,19 @@ void Switch::AddEnQueueLength(int queuelength){
     }
 
     //judge queuelength short
-    if(m_enqueueLength - m_dequeueLength < QUEUELENGTHLIMIT){
+    //std::cout<<m_enqueueLength - m_dequeueLength;
+    if(m_queueLength < QUEUELENGTHLIMIT){
         m_isQueueShort = true;
+        if(m_strategy == TDT && m_TDTstate == EVACUATION){
+            m_TDTstate = TDTNORMAL;
+            m_stateChangePtr->Set(1);
+            int n_n = m_TDTNPortNumPtr->Get();
+            int n_e = m_TDTEPortNumPtr->Get();
+            m_TDTNPortNumPtr->Set(n_n + 1);
+            m_TDTEPortNumPtr->Set(n_e - 1);
+        }
+    }else{
+        m_isQueueShort = false;
     }
     
     //入队增速超过阈值，状态调整
@@ -429,45 +482,59 @@ void Switch::AddEnQueueLength(int queuelength){
     //if(m_enqueueRate - m_lastEnqueueRate > ENQUEUERATELIMIT && m_lastEnqueueRate != 0){
     if(m_enqueueRate > ENQUEUERATELIMIT && m_lastEnqueueRate != 0){
         //记录最开始流量到达的时间
-        std::cout<<"--------- incast ----------"<<std::endl;
+        ++m_C2;
         //std::cout<<m_enqueueRate<<std::endl;
         //std::cout<<m_lastEnqueueRate<<std::endl;
+        //state change
+    }
+    //std::cout<<m_C2<<std::endl;
+    if(m_strategy == EDT && m_C2 >= EDT_C2){
         if(!m_isTrafficExist){
+            std::cout<<"---------port "<<m_port<<" incast COME ----------"<<std::endl;
             m_isTrafficExist = true;
-            //记录此时时间
+            //记录最开始流量到达的时间
+            m_T2 = GetNowTime();
+        }
+        int n_c = m_EDTCPortNumPtr->Get();
+        int n_n = m_EDTNCPortNumPtr->Get();
+        if(m_EDTstate == CONTROL){
+            m_stateChangePtr->Set(1);
+            m_EDTstate = NONCONTROL;
+            m_EDTCPortNumPtr->Set(n_c - 1);
+            m_EDTNCPortNumPtr->Set(n_n + 1);
+        }
+    }
+    if(m_strategy == TDT && (m_queuePacketNum >= TDTNEC && (m_packetDropNum == 0) && m_isTDTIncast)){
+        if(!m_isTrafficExist){
+            std::cout<<"---------port "<<m_port<<" incast COME ----------"<<std::endl;
+            m_isTrafficExist = true;
+        }
+        int n_n = m_TDTNPortNumPtr->Get();
+        int n_a = m_TDTAPortNumPtr->Get();
+        if(m_TDTstate == TDTNORMAL){
+            m_stateChangePtr->Set(1);
+            m_TDTstate = ABSORPTION;
+            m_TDTAPortNumPtr->Set(n_a + 1);
+            m_TDTNPortNumPtr->Set(n_n - 1);  
+        }
+    }
+    if(m_strategy == AASDT && (m_C2 >= EDT_C2 || m_queuePacketNum >= TDTNEC)){
+        if(!m_isTrafficExist){
+            std::cout<<"---------port "<<m_port<<" incast COME ----------"<<std::endl;
+            m_isTrafficExist = true;
+            //记录最开始流量到达的时间
             m_stateTransitionTimer = GetNowTime();
         }
-        //state change
-        if(m_strategy == EDT){
-            int n_c = m_EDTCPortNumPtr->Get();
-            int n_n = m_EDTNCPortNumPtr->Get();
-            if(m_EDTstate == CONTROL){
-                m_stateChangePtr->Set(1);
-                m_EDTstate = NONCONTROL;
-                m_EDTCPortNumPtr->Set(n_c - 1);
-                m_EDTNCPortNumPtr->Set(n_n + 1);
-            }
-        }else if(m_strategy == TDT){
-            int n_n = m_TDTNPortNumPtr->Get();
-            int n_a = m_TDTAPortNumPtr->Get();
-            if(m_TDTstate == TDTNORMAL){
-                m_stateChangePtr->Set(1);
-                m_TDTstate = ABSORPTION;
-                m_TDTAPortNumPtr->Set(n_a + 1);
-                m_TDTNPortNumPtr->Set(n_n - 1);  
-            }
-        }else if(m_strategy == AASDT){
-            int n_n = m_AASDTNPortNumPtr->Get();
-            int n_i = m_AASDTIPortNumPtr->Get();
-            //int n_c = m_AASDTCPortNumPtr->Get();
-            if(m_AASDTstate == AASDTNORMAL){
-                m_stateChangePtr->Set(1);
-                m_AASDTstate = INCAST;
-                int AASDTITime = m_AASDTITimePtr->Get();
-                m_AASDTNPortNumPtr->Set(n_n - 1);
-                m_AASDTIPortNumPtr->Set(n_i + 1);
-                m_AASDTITimePtr->Set(AASDTITime + 1);
-            }
+        int n_n = m_AASDTNPortNumPtr->Get();
+        int n_i = m_AASDTIPortNumPtr->Get();
+        //int n_c = m_AASDTCPortNumPtr->Get();
+        if(m_AASDTstate == AASDTNORMAL){
+            m_stateChangePtr->Set(1);
+            m_AASDTstate = INCAST;
+            int AASDTITime = m_AASDTITimePtr->Get();
+            m_AASDTNPortNumPtr->Set(n_n - 1);
+            m_AASDTIPortNumPtr->Set(n_i + 1);
+            m_AASDTITimePtr->Set(AASDTITime + 1);
         }
     }
     m_lastEnqueueRate = m_enqueueRate;
@@ -488,9 +555,9 @@ void Switch::AddDeQueueLength(int queuelength){
             if(m_dequeueInterval != 0){
                 m_dequeueRate = (m_dequeueLength - m_lastDequeueLength) / m_dequeueInterval;
                 m_lastDequeueLength = m_dequeueLength;
-                std::cout<<"-------dequeue rate is "<<m_dequeueRate<<std::endl;
+                std::cout<<"-------dequeue rate in port "<<m_port<<" is "<<m_dequeueRate<<std::endl;
             }else{
-                std::cout<<"-------m_dequeueInterval is "<<m_dequeueInterval<<std::endl;
+                std::cout<<"-------m_dequeueInterval in port "<<m_port<<" is "<<m_dequeueInterval<<std::endl;
             }
             /* m_dequeueRate = m_dequeueLength / m_dequeueInterval;
             std::cout<<"-------dequeue rate is "<<m_dequeueRate<<std::endl; */
@@ -503,49 +570,26 @@ void Switch::AddDeQueueLength(int queuelength){
     if(nowTime - m_startTime > ADJUSTCYCLE){
         AASDTReset();
     }
-
+    //std::cout<<m_isQueueShort<<std::endl;
     //出队速率小于阈值且队列长度小于阈值
     if((m_dequeueRate !=0 && m_dequeueRate <= DEQUEUERATELIMIT) && m_isQueueShort){
-        std::cout<<"----- incast traffic leave -----"<<std::endl;
-        //state change
+        //std::cout<<"----- incast traffic leave -----"<<std::endl;
+        ++m_C1;
+    }
+    if(m_strategy == EDT && m_C1 > EDT_C1){
         if(m_isTrafficExist){
+            std::cout<<"---------port "<<m_port<<" incast traffic leave ----------"<<std::endl;
             m_isTrafficExist = false;
         }
-        if(m_strategy == EDT){
-            //std::cout<<"11111111"<<std::endl;
-            int n_c = m_EDTCPortNumPtr->Get();
-            int n_n = m_EDTNCPortNumPtr->Get();
-            if(m_EDTstate == NONCONTROL){
-                m_stateChangePtr->Set(1);
-                m_EDTstate = CONTROL;
-                m_EDTCPortNumPtr->Set(n_c + 1);
-                m_EDTNCPortNumPtr->Set(n_n - 1);
-            }
-        }else if(m_strategy == TDT){
-            int n_n = m_TDTNPortNumPtr->Get();
-            int n_a = m_TDTAPortNumPtr->Get();
-            if(m_TDTstate == ABSORPTION){
-                m_stateChangePtr->Set(1);
-                m_TDTstate = TDTNORMAL;
-                m_TDTAPortNumPtr->Set(n_a - 1);
-                m_TDTNPortNumPtr->Set(n_n + 1);  
-            }
-        }/* else if(m_strategy == AASDT){
-            int n_n = m_AASDTNPortNumPtr->Get();
-            int n_i = m_AASDTIPortNumPtr->Get();
-            int n_c = m_AASDTCPortNumPtr->Get();
-            if(m_AASDTstate == INCAST){
-                m_stateChangePtr->Set(1);
-                m_AASDTstate = AASDTNORMAL;
-                m_AASDTNPortNumPtr->Set(n_n + 1);
-                m_AASDTIPortNumPtr->Set(n_i - 1);
-            }else if(m_AASDTstate == CONGESTION){
-                m_stateChangePtr->Set(1);
-                m_AASDTstate = AASDTNORMAL;
-                m_AASDTCPortNumPtr->Set(n_c - 1);
-                m_AASDTNPortNumPtr->Set(n_n + 1); 
-            }
-        } */
+        //std::cout<<"11111111"<<std::endl;
+        int n_c = m_EDTCPortNumPtr->Get();
+        int n_n = m_EDTNCPortNumPtr->Get();
+        if(m_EDTstate == NONCONTROL){
+            m_stateChangePtr->Set(1);
+            m_EDTstate = CONTROL;
+            m_EDTCPortNumPtr->Set(n_c + 1);
+            m_EDTNCPortNumPtr->Set(n_n - 1);
+        }
     }
 }
 

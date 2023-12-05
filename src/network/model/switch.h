@@ -24,9 +24,28 @@
 # define COEXIST_I 33
 # define COEXIST_C 34
 
+//EDT Threshold
+# define EDT_C1 3
+# define EDT_C2 3
+# define EDT_T1 2.7
+# define EDT_T2 10
+
+//TDT Threshold
+# define TDTPACKETDROPNUMLIMIT 333
+# define TDTNEC 42
+# define TDTDEC 3
+# define TDTOC1 42
+# define TDTOC2 500
+//# define TDTOC2 1344
+
+
+//AASDT Threshold
+# define AASDTPACKETDROPNUMLIMIT 5
+# define AASDTTIMELIMIT 200
+
 /*AASDT α Adjust the cycle : ms*/
-# define ADJUSTCYCLE 10000000000
-# define ADJUSTPARAMETER 1
+# define ADJUSTCYCLE 1000000
+# define ADJUSTPARAMETER 10
 
 namespace ns3 {
     class Switch : public Object{
@@ -46,11 +65,17 @@ namespace ns3 {
             int GetAASDTCTime();
             int GetEnQueueLength();
             int GetDeQueueLength();
+            uint32_t GetPort();
+            uint32_t GetQueuePacketNum();
+            uint32_t GetQueueLength();
             int64_t GetNowTime(); //ms
             //set function
             void SetdtAlphaExp(int alphaExp);
             void SetdtInitialAlphaExp(int alphaExp);
-            void Setstrategy(int strategy);
+            void SetStrategy(int strategy);
+            void SetPort(uint32_t port);
+            void SetQueueLength(uint32_t length);
+            void SetQueuePacketNum(uint32_t num);
             void SetUsedBufferPtr(Ptr<UintegerValue> usedBufferPtr);
             void SetSharedBufferSize(int sharedBufferSize);
             void SetPortNumPtr(Ptr<UintegerValue> PortNumPtr);
@@ -73,18 +98,22 @@ namespace ns3 {
             void TimeoutJudgment();
             void AASDTReset();
 
-            int m_EDTstate = CONTROL;                  //10:控制；11:非控制;
+            int m_EDTstate = CONTROL;                     //10:控制；11:非控制;
             int m_TDTstate = TDTNORMAL;                   //20:正常；21:吸收;22:疏散
             int m_AASDTstate = AASDTNORMAL;//INCAST;      //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
 
         private:
+            uint32_t m_port;                    //port i
+            uint32_t m_queueLength;             //queue length
+            uint32_t m_queuePacketNum;          //净排队包数量
+
             int m_strategy = 0;                 //0:DT;1:EDT;2:TDT;3:AASDT
             int m_dtAlphaExp;                   //alpha = 2^(dtAlphaExp)
             int m_dtInitialAlpha;               //Initial Alpha 
             int m_sharedBufferSize;             //bytes
             int m_packetDropNum;                //packet Drop Num
             int m_packetEnqueueNum;             //packet DoEnqueue Num
-            int m_packetDequeueNum;             //packet DoEnqueue Num
+            int m_packetDequeueNum;             //packet DoEnqueue Num        
             int m_enqueueLength;                //enqueue length
             int m_lastEnqueueLength;            //temp enqueue length
             int m_dequeueLength;                //dequeue length
@@ -92,9 +121,22 @@ namespace ns3 {
             int m_packetArriveSize;             //packet arrive size
             int m_packetNum;                    //每几个算一个速率
 
-            //时间变量：ms
+            //EDT 
+            int m_C1 = 0;                       //欠载计数器
+            int m_C2 = 0;                       //过载计数器
+            int64_t m_T1 = 0;                   //计时器1
+            int64_t m_T2 = 0;                   //计时器2
+
+            //TDT
+            int m_OC1 = 0;                      //OC1
+            int m_DEC = 0;                      //计算DEC
+            bool m_isTDTIncast = true;          //OC1
+
+            //AASDT
             int64_t m_stateTransitionTimer;     //记录超时时间
-            int64_t m_startTime;                //开始时间
+            int64_t m_startTime;                //记录开始时间
+
+            //时间变量：ms
             int64_t m_enqueueClock;             //enqueue clock
             int64_t m_dequeueClock;             //dequeue clock
             int64_t m_enqueueInterval;          //enqueue interval
@@ -102,7 +144,7 @@ namespace ns3 {
 
             bool m_isTrafficExist = false;      //流量是否存在
             bool m_isQueueShort = false;        //队列是否很短  
-            bool m_isDropPacket = false;        //是否丢包超过阈值          
+            bool m_isDropPacket = false;        //AASDT是否丢包超过阈值       
 
             double m_threshold;                 //阈值
             double m_enqueueRate;               // enqueue rate B/MS

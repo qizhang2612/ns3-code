@@ -233,17 +233,27 @@ void Switch::Calculate(){
                 }
             }
         }else{
+            //std::cout<<n_n<<n_i<<n_c<<n_ci<<n_cc<<std::endl;
             //COEXIST
             if(m_AASDTstate == COEXIST_I){
                 //std::cout<<"-------this is COEXIST_I state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
-                    SetdtAlphaExp(m_dtInitialAlpha + n + 1 + n_cc - n_ci);
+                    if(n_i + n_c == 0){
+                        SetdtAlphaExp(m_dtInitialAlpha + n + 1 + n_cc - n_ci);
+                    }else{
+                        SetdtAlphaExp(m_dtInitialAlpha + n + 1 + n_c - n_i);
+                    }
                     m_stateChangePtr->Set(0);
                 }
+                //std::cout<<m_dtAlphaExp<<std::endl;
             }else if(m_AASDTstate == COEXIST_C){
                 //std::cout<<"-------this is COEXIST_C state-------"<<std::endl;
                 if(m_stateChangePtr->Get() > 0){
-                    SetdtAlphaExp(m_dtInitialAlpha + n_cc - n_ci);
+                    if(n_i + n_c == 0){
+                        SetdtAlphaExp(m_dtInitialAlpha + n_cc - n_ci);
+                    }else{
+                        SetdtAlphaExp(m_dtInitialAlpha + n_c - n_i);
+                    }
                     m_stateChangePtr->Set(0);
                 }
             }else{
@@ -418,20 +428,28 @@ void Switch::TimeoutJudgment(){
             m_packetDequeueNum = 0;
             m_isTrafficExist = false;
         }
-    }else if(m_strategy == AASDT && m_AASDTstate == INCAST){
+    }else if(m_strategy == AASDT){
+        int n = m_AASDTNPortNumPtr->Get();
         int n_i = m_AASDTIPortNumPtr->Get();
         int n_c = m_AASDTCPortNumPtr->Get();
-        if(m_time_now - m_stateTransitionTimer > AASDTTIMELIMIT){
-            m_stateChangePtr->Set(1);
-            m_AASDTstate = CONGESTION;
-            m_AASDTCPortNumPtr->Set(n_c - 1);
-            m_AASDTIPortNumPtr->Set(n_i - 1);
+        //std::cout<<m_packetDequeueNum<<std::endl;
+        if(m_packetDequeueNum >= AASDTOC){
             int AASDTCTime = m_AASDTCTimePtr->Get();
             m_AASDTCTimePtr->Set(AASDTCTime + 1);
+            if(m_AASDTstate == AASDTNORMAL){
+                m_stateChangePtr->Set(1);
+                m_AASDTstate = CONGESTION;
+                m_AASDTCPortNumPtr->Set(n_c + 1);
+                m_AASDTIPortNumPtr->Set(n - 1);
+            }else if(m_AASDTstate == INCAST){
+                m_stateChangePtr->Set(1);
+                m_AASDTstate = CONGESTION;
+                m_AASDTCPortNumPtr->Set(n_c + 1);
+                m_AASDTIPortNumPtr->Set(n_i - 1);
+            }
         } 
     }
 }
-
 
 void Switch::AddEnQueueLength(int queuelength){
     m_enqueueLength += queuelength;
@@ -464,7 +482,6 @@ void Switch::AddEnQueueLength(int queuelength){
     }
 
     //judge queuelength short
-    //std::cout<<m_enqueueLength - m_dequeueLength;
     if(m_queueLength < QUEUELENGTHLIMIT){
         m_isQueueShort = true;
         if(m_strategy == TDT && m_TDTstate == EVACUATION){
@@ -524,8 +541,6 @@ void Switch::AddEnQueueLength(int queuelength){
         if(!m_isTrafficExist){
             std::cout<<"---------port "<<m_port<<" incast COME ----------"<<std::endl;
             m_isTrafficExist = true;
-            //记录最开始流量到达的时间
-            m_stateTransitionTimer = GetNowTime();
         }
         int n_n = m_AASDTNPortNumPtr->Get();
         int n_i = m_AASDTIPortNumPtr->Get();
@@ -605,21 +620,24 @@ void Switch::DeleteUsed(int size){
 
 void Switch::StatusJudgment(){
     if(m_strategy == AASDT){
+        int n = m_PortNumPtr->Get();
+        int n_n = m_AASDTNPortNumPtr->Get();
         int n_i = m_AASDTIPortNumPtr->Get();
         int n_c = m_AASDTCPortNumPtr->Get();
         int n_ci = m_AASDTCIPortNumPtr->Get();
         int n_cc = m_AASDTCCPortNumPtr->Get();
-        if(m_AASDTstate == INCAST && n_c > 0){
+        if(m_AASDTstate == INCAST && n_c + n_ci + n_cc > 0){
             m_stateChangePtr->Set(1);
             m_AASDTstate = COEXIST_I;
-            m_AASDTIPortNumPtr->Set(n_i - 1);
             m_AASDTCIPortNumPtr->Set(n_ci + 1);
-        }
-        if(m_AASDTstate == CONGESTION && n_i > 0){
+        }else if(m_AASDTstate == CONGESTION && n_i + n_ci + n_cc > 0){
             m_stateChangePtr->Set(1);
             m_AASDTstate = COEXIST_C;
-            m_AASDTCPortNumPtr->Set(n_c - 1);
             m_AASDTCCPortNumPtr->Set(n_cc + 1);
+        }
+        if(n_n + n_ci + n_cc == n){
+            m_AASDTIPortNumPtr->Set(0);
+            m_AASDTCPortNumPtr->Set(0);
         }
     }
 }

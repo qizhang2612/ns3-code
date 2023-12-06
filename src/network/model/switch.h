@@ -42,6 +42,7 @@
 //AASDT Threshold
 # define AASDTPACKETDROPNUMLIMIT 5
 # define AASDTTIMELIMIT 200
+# define AASDTOC 500
 
 /*AASDT α Adjust the cycle : ms*/
 # define ADJUSTCYCLE 1000000
@@ -132,8 +133,6 @@ namespace ns3 {
             int m_DEC = 0;                      //计算DEC
             bool m_isTDTIncast = true;          //OC1
 
-            //AASDT
-            int64_t m_stateTransitionTimer;     //记录超时时间
             int64_t m_startTime;                //记录开始时间
 
             //时间变量：ms

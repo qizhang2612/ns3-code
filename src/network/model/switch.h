@@ -43,6 +43,7 @@
 # define AASDTPACKETDROPNUMLIMIT 5
 # define AASDTTIMELIMIT 200
 # define AASDTOC 500
+# define AASDTOC2 1000
 
 /*AASDT α Adjust the cycle : ms*/
 # define ADJUSTCYCLE 1000000
@@ -169,6 +170,8 @@ namespace ns3 {
 
             Ptr<UintegerValue> m_AASDTITimePtr; //突发次数
             Ptr<UintegerValue> m_AASDTCTimePtr; //拥塞次数 
+
+            Ptr<UintegerValue> m_AASDTReSetPtr; //重置标识 
 
             Ptr<UintegerValue> m_stateChangePtr;        //state Change
 

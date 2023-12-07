@@ -51,6 +51,7 @@ Switch::Switch(){
     m_usedBufferPtr = Create<UintegerValue>(0);
     m_AASDTITimePtr = Create<UintegerValue>(0);
     m_AASDTCTimePtr = Create<UintegerValue>(0);
+    m_AASDTReSetPtr = Create<UintegerValue>(0);
 }
 
 Switch::~Switch(){
@@ -378,8 +379,13 @@ void Switch::AddPacketArriveSize(int size){
         std::cout<<"-------start time in port "<<m_port<<" is "<<m_startTime<<std::endl;
     }
     int64_t nowTime = GetNowTime();
-    if(nowTime - m_startTime > ADJUSTCYCLE){
-        AASDTReset();
+    if(m_strategy == AASDT){
+        int n = m_AASDTReSetPtr->Get();
+        if((n > 0) ||(nowTime - m_startTime > ADJUSTCYCLE) 
+            || (m_packetDequeueNum >= AASDTOC2)){
+            AASDTReset();
+            //m_AASDTReSetPtr->Set(1);
+        }
     }
     //EDT 计时器更新
     if(m_strategy == EDT && (nowTime - m_T1 > EDT_T1 && m_C2 <= EDT_C2)){
@@ -441,11 +447,15 @@ void Switch::TimeoutJudgment(){
                 m_AASDTstate = CONGESTION;
                 m_AASDTCPortNumPtr->Set(n_c + 1);
                 m_AASDTIPortNumPtr->Set(n - 1);
+                int m = m_AASDTCTimePtr->Get();
+                m_AASDTCTimePtr->Set(m + 1);
             }else if(m_AASDTstate == INCAST){
                 m_stateChangePtr->Set(1);
                 m_AASDTstate = CONGESTION;
                 m_AASDTCPortNumPtr->Set(n_c + 1);
                 m_AASDTIPortNumPtr->Set(n_i - 1);
+                int m = m_AASDTCTimePtr->Get();
+                m_AASDTCTimePtr->Set(m + 1);
             }
         } 
     }
@@ -643,6 +653,7 @@ void Switch::StatusJudgment(){
 }
 
 void Switch::AASDTReset(){
+    //std::cout<<"sysyysysysysyysysyssstyssyy"<<std::endl;
     m_AASDTstate = AASDTNORMAL;
     //α adjust
     int AASDTITime = m_AASDTITimePtr->Get();
@@ -652,6 +663,7 @@ void Switch::AASDTReset(){
     m_AASDTITimePtr->Set(0);
     m_AASDTCTimePtr->Set(0);
     m_packetEnqueueNum = 0;
+    m_packetDequeueNum = 0;
     m_startTime = GetNowTime();
     m_stateChangePtr->Set(1);
     //port adjust
@@ -661,6 +673,11 @@ void Switch::AASDTReset(){
     m_AASDTCPortNumPtr->Set(0);
     m_AASDTCIPortNumPtr->Set(0);
     m_AASDTCCPortNumPtr->Set(0);
+    int m = m_AASDTReSetPtr->Get();
+    m_AASDTReSetPtr->Set(m + 1);
+    if(m + 1 == n){
+        m_AASDTReSetPtr->Set(0);
+    }
 }
 
 

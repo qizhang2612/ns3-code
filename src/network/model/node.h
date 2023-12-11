@@ -310,7 +310,7 @@ class Node : public Object
 
     //zq add
     uint32_t m_node_type = 0;
-    int m_switchPort = 0;
+    //int m_switchPort = 0;
 
     uint32_t m_id;                                        //!< Node id for this node
     uint32_t m_sid;                                       //!< System id for this node

@@ -407,15 +407,5 @@ Node::GetNodeType()
 	return m_node_type;
 }
 
-void
-Node::SetSwitchPort(int port){
-    m_switchPort = port;
-}
-
-int 
-Node::GetSwitchPort(){
-    return m_switchPort;
-}
-
 
 } // namespace ns3

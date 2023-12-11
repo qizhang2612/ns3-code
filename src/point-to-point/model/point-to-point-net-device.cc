@@ -294,7 +294,8 @@ PointToPointNetDevice::TransmitComplete()
             m_node->m_switch->DeleteUsed(p->GetSize());
             m_node->m_switch->AddDeQueueLength(p->GetSize());
             m_node->m_switch->AddPacketDequeueNum();
-            std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<std::endl;
+            std::cout<<"----- this is node type "<<m_node->m_switch->GetNodeType()<<std::endl;
+            std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<std::endl;
             //std::cout<<"----- PacketDequeueNum = " <<m_node->m_switch->GetPacketDequeueNum()<<std::endl;
             //std::cout<<"----- DequeueLength = " <<m_node->m_switch->GetDeQueueLength()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
@@ -582,14 +583,16 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
             m_node->m_switch->AddEnQueueLength(packet->GetSize());
             m_node->m_switch->SetQueueLength(m_queue->GetNBytes());
             m_node->m_switch->SetQueuePacketNum(m_queue->GetNPackets());
+            std::cout<<"----- this is node type "<<m_node->m_switch->GetNodeType()<<std::endl;
             if(m_node->m_switch->GetStrategy() == 1){
-                std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<" and the state is = "<< m_node->m_switch->m_EDTstate<<std::endl;
+                std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<" and the state is = "<< m_node->m_switch->m_EDTstate<<std::endl;
             }else if(m_node->m_switch->GetStrategy() == 2){
-                std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<" and the state is = "<< m_node->m_switch->m_TDTstate<<std::endl;
+                std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<" and the state is = "<< m_node->m_switch->m_TDTstate<<std::endl;
             }else if(m_node->m_switch->GetStrategy() == 3){
-                std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<" and the state is = "<< m_node->m_switch->m_AASDTstate<<std::endl;
+                std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<" and the state is = "<< m_node->m_switch->m_AASDTstate<<std::endl;
+            }else{
+                std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<std::endl;
             }
-            //std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<std::endl;
             std::cout<<"----- the queue length is "<<m_node->m_switch->GetQueueLength()<<std::endl;
              std::cout<<"----- the queue packet num is "<<m_node->m_switch->GetQueuePacketNum()<<std::endl;
             std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<" , AvailBufferSize = "<< m_node->m_switch->GetAvailBufferSize()<<" and the packet size is "<<packet->GetSize()<<std::endl;
@@ -608,7 +611,8 @@ PointToPointNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t pr
                 m_node->m_switch->DeleteUsed(packet->GetSize());
                 m_node->m_switch->AddPacketDequeueNum();
                 m_node->m_switch->AddDeQueueLength(packet->GetSize());
-                std::cout<<"----- this is switch port "<<m_node->GetSwitchPort()<<std::endl;
+                std::cout<<"----- this is node type "<<m_node->m_switch->GetNodeType()<<std::endl;
+                std::cout<<"----- this is switch "<<m_node->m_switch->GetPort()<<std::endl;
                 std::cout<<"----- threshold = "<< m_node->m_switch->GetThreshold()<<std::endl;
                 //std::cout<<"----- PacketDequeueNum = " <<m_node->m_switch->GetPacketDequeueNum()<<std::endl;
                 //std::cout<<"----- DequeueLength = " <<m_node->m_switch->GetDeQueueLength()<<std::endl;

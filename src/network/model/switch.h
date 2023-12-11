@@ -26,7 +26,7 @@
 
 //EDT Threshold
 # define EDT_C1 3
-# define EDT_C2 3
+# define EDT_C2 10
 # define EDT_T1 2.7
 # define EDT_T2 10
 
@@ -35,15 +35,15 @@
 # define TDTNEC 42
 # define TDTDEC 3
 # define TDTOC1 42
-# define TDTOC2 500
+# define TDTOC2 13440
 //# define TDTOC2 1344
 
 
 //AASDT Threshold
 # define AASDTPACKETDROPNUMLIMIT 5
 # define AASDTTIMELIMIT 200
-# define AASDTOC 500
-# define AASDTOC2 1000
+# define AASDTOC 100000000
+# define AASDTOC2 1000000000
 
 /*AASDT α Adjust the cycle : ms*/
 # define ADJUSTCYCLE 1000000
@@ -56,6 +56,7 @@ namespace ns3 {
             Switch();
             virtual ~Switch();
             //get function
+            int GetNodeType();
             int GetThreshold();
             int GetPacketDropNum();
             int GetStrategy();
@@ -72,6 +73,7 @@ namespace ns3 {
             uint32_t GetQueueLength();
             int64_t GetNowTime(); //ms
             //set function
+            void SetNodeType(int type);
             void SetdtAlphaExp(int alphaExp);
             void SetdtInitialAlphaExp(int alphaExp);
             void SetStrategy(int strategy);
@@ -79,7 +81,7 @@ namespace ns3 {
             void SetQueueLength(uint32_t length);
             void SetQueuePacketNum(uint32_t num);
             void SetUsedBufferPtr(Ptr<UintegerValue> usedBufferPtr);
-            void SetSharedBufferSize(int sharedBufferSize);
+            void SetSharedBufferSize(uint32_t sharedBufferSize);
             void SetPortNumPtr(Ptr<UintegerValue> PortNumPtr);
             void SetStateChangePtr(Ptr<UintegerValue> stateChangePtr);
             void SetAASDTICNumPtr(Ptr<UintegerValue> AASDTITimePtr,Ptr<UintegerValue> AASDTCTimePtr);
@@ -104,15 +106,16 @@ namespace ns3 {
             int m_TDTstate = TDTNORMAL;                   //20:正常；21:吸收;22:疏散
             int m_AASDTstate = AASDTNORMAL;//INCAST;      //30:正常；31:突发;32:拥塞;33:共存1;34:共存2
 
-        private:
+        private:     
             uint32_t m_port;                    //port i
             uint32_t m_queueLength;             //queue length
             uint32_t m_queuePacketNum;          //净排队包数量
+            uint32_t m_sharedBufferSize;             //bytes
 
+            int m_nodeType = 0;                 //server : 0;leaf : 1; shine : 2
             int m_strategy = 0;                 //0:DT;1:EDT;2:TDT;3:AASDT
             int m_dtAlphaExp;                   //alpha = 2^(dtAlphaExp)
             int m_dtInitialAlpha;               //Initial Alpha 
-            int m_sharedBufferSize;             //bytes
             int m_packetDropNum;                //packet Drop Num
             int m_packetEnqueueNum;             //packet DoEnqueue Num
             int m_packetDequeueNum;             //packet DoEnqueue Num        

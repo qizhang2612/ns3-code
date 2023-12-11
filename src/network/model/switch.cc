@@ -58,6 +58,10 @@ Switch::~Switch(){
     NS_LOG_FUNCTION (this);
 }
 
+int Switch::GetNodeType(){
+    return m_nodeType;
+}
+
 int Switch::GetThreshold(){
     StatusJudgment();
     /* if(m_stateChangePtr->Get() > 0){
@@ -271,6 +275,10 @@ void Switch::Calculate(){
     }   
 }
 
+void Switch::SetNodeType(int type){
+    m_nodeType = type;
+}
+
 void Switch::SetStrategy(int strategy){
     m_strategy = strategy;
 }
@@ -278,7 +286,7 @@ void Switch::SetStrategy(int strategy){
 void Switch::SetPort(uint32_t port){
     m_port = port;
 }
-void Switch::SetSharedBufferSize(int sharedBufferSize){
+void Switch::SetSharedBufferSize(uint32_t sharedBufferSize){
     m_sharedBufferSize = sharedBufferSize;
 }
 

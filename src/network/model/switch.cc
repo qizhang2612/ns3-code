@@ -13,7 +13,7 @@
 /*state transition limit*/
 # define TIMELIMIT 100
 # define QUEUELENGTHLIMIT 100
-# define ENQUEUERATELIMIT 100
+# define ENQUEUERATELIMIT 1000
 # define DEQUEUERATELIMIT 40
 # define PACKETNUM 3
 
@@ -364,13 +364,14 @@ void Switch::AddPacketDropNum(){
             int n_e = m_TDTEPortNumPtr->Get();
             m_TDTNPortNumPtr->Set(n_n - 1);
             m_TDTEPortNumPtr->Set(n_e + 1);
+            m_packetDropNum = 0;
         }else if(m_TDTstate == ABSORPTION){
             m_TDTstate = TDTNORMAL;
             m_stateChangePtr->Set(1);
             int n_n = m_TDTNPortNumPtr->Get();
             int n_a = m_TDTAPortNumPtr->Get();
             m_TDTNPortNumPtr->Set(n_n + 1);
-            m_TDTEPortNumPtr->Set(n_a - 1);
+            m_TDTAPortNumPtr->Set(n_a - 1);
             m_packetDropNum = 0;
             m_isTrafficExist = false;
         }
@@ -438,7 +439,7 @@ void Switch::TimeoutJudgment(){
             m_TDTstate = TDTNORMAL;
             m_stateChangePtr->Set(1);
             m_TDTNPortNumPtr->Set(n_n + 1);
-            m_TDTEPortNumPtr->Set(n_a - 1);
+            m_TDTAPortNumPtr->Set(n_a - 1);
             m_packetDequeueNum = 0;
             m_isTrafficExist = false;
         }
@@ -556,6 +557,7 @@ void Switch::AddEnQueueLength(int queuelength){
         }
     }
     if(m_strategy == AASDT && (m_C2 >= EDT_C2 || m_queuePacketNum >= TDTNEC)){
+    //if(m_strategy == AASDT && (m_queuePacketNum >= TDTNEC)){
         if(!m_isTrafficExist){
             std::cout<<"---------port "<<m_port<<" incast COME ----------"<<std::endl;
             m_isTrafficExist = true;
@@ -625,6 +627,7 @@ void Switch::AddDeQueueLength(int queuelength){
             m_EDTCPortNumPtr->Set(n_c + 1);
             m_EDTNCPortNumPtr->Set(n_n - 1);
         }
+        m_C1 = 0;
     }
 }
 

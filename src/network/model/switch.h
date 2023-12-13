@@ -26,16 +26,16 @@
 
 //EDT Threshold
 # define EDT_C1 3
-# define EDT_C2 10
+# define EDT_C2 7
 # define EDT_T1 2.7
 # define EDT_T2 10
 
 //TDT Threshold
 # define TDTPACKETDROPNUMLIMIT 333
-# define TDTNEC 42
+# define TDTNEC 142
 # define TDTDEC 3
 # define TDTOC1 42
-# define TDTOC2 13440
+# define TDTOC2 500//1344
 //# define TDTOC2 1344
 
 
